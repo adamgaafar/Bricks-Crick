@@ -1,9 +1,10 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
+using UnityEngine.InputSystem; // MIGRATED: New Input System namespace
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using UnityEngine.InputSystem; // MIGRATED: New Input System namespace
 
 public class MainManager : MonoBehaviour
 {
@@ -11,7 +12,11 @@ public class MainManager : MonoBehaviour
     public int LineCount = 6;
     public Rigidbody Ball;
 
+    public string name = MenuManager.Instance.name;
+    public int bestScore = 0;
+
     public Text ScoreText;
+    public Text BestScoreAndNameText;
     public GameObject GameOverText;
 
     private bool m_Started = false;
@@ -40,6 +45,44 @@ public class MainManager : MonoBehaviour
         m_LaunchAction.Disable();
     }
 
+    [System.Serializable]
+    class SaveData
+    {
+        public string name;
+        public int score;
+    }
+
+    public void savePlayer()
+    {
+        SaveData d1 = new SaveData();
+        d1.name = MenuManager.Instance.name;
+
+        if(m_Points < bestScore)
+        {
+            d1.score = bestScore;
+        } else
+        {
+            d1.score = m_Points;
+        }
+
+
+        string json = JsonUtility.ToJson(d1);
+
+        File.WriteAllText(Application.persistentDataPath + "/savefile.json",json);
+    }
+
+    public void loadData()
+    {
+        string path = Application.persistentDataPath + "/savefile.json";
+        if (File.Exists(path))
+        {
+            string json = File.ReadAllText(path);
+            SaveData d1 = JsonUtility.FromJson<SaveData>(json);
+            name = d1.name;
+            bestScore = d1.score;
+
+        }
+    }
     // Start is called before the first frame update
     void Start()
     {
@@ -57,6 +100,8 @@ public class MainManager : MonoBehaviour
                 brick.onDestroyed.AddListener(AddPoint);
             }
         }
+        loadData();
+        BestScoreAndNameText.text = "Best Score: "+ bestScore  + " Name: " + name;
     }
 
     private void Update()
@@ -91,6 +136,8 @@ public class MainManager : MonoBehaviour
 
     public void GameOver()
     {
+    
+        savePlayer();
         m_GameOver = true;
         GameOverText.SetActive(true);
     }
